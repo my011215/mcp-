@@ -796,15 +796,15 @@ MCP 支持两种传输机制：
 
 **Stdio 传输**：使用标准输入/输出流在同一台机器上的本地进程之间进行直接进程通信，提供最佳性能，无网络开销。  
 
-##### HTTP + SSE 传输  
+##### HTTP + SSE 传输  （代办）  
 
 
 
-##### Streamable HTTP 传输  
+##### Streamable HTTP 传输  （代办）
 
 
 
-## 手搓简易MCP客户端+服务端+langchain链式调用    
+## 手搓简易MCP客户端+服务端+langchain链式调用   （代办）   
 
 
 
@@ -909,5 +909,5 @@ STDERR:                              CallToolRequest
 
 ```
 
-#### cline与大模型的交互流程  
+#### cline与大模型的交互流程  （代办）  
 
