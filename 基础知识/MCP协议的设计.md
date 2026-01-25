@@ -35,7 +35,7 @@ Function Calling是指大语言模型（LLM）能够识别用户意图，并结�
 - 强化学习：优化函数选择的准确性
 
 2、API支持：模型提供商需额外开放对 Function Calling 的支持（比如 GPT API  中提供了一个 functions 参数）。
-- OpenAI格式（事实标准）  
+- OpenAI格式    
 ```python
 # OpenAI / Azure OpenAI 格式
 import openai
@@ -798,10 +798,22 @@ MCP 支持两种传输机制：
 
 ##### HTTP + SSE 传输  （代办）  
 
+**SSE**（Server-Sent Events服务器发送事件），是一种服务器单向推送数据给客户端的技术，基于 HTTP 协议。  
 
+- 支持服务端主动、流式地推送消息  
+- 服务端推送的必要性：MCP Server 中的工具发生了更新，需要主动向 MCP Client 推送通知
 
-##### Streamable HTTP 传输  （代办）
+##### Streamable HTTP 传输  （代办） 
+HTTP + SSE 传输方案的升级版，目前正在逐步取代原有的 HTTP + SSE 传输方案  
+链接：https://github.com/modelcontextprotocol/modelcontextprotocol/pull/206  
 
+在一个 HTTP 连接里，服务端可以持续不断地发送数据给客户端，客户端边接收边处理，类似“流”一样。  
+
+问题：为什么要升级为Streamable HTTP 传输 ？  
+
+- 数据格式限制问题：SSE 的 Content-Type: text/event-stream 只支持文本格式；Streamable HTTP 的Content-Type支持任意格式，如 JSON、HTML、二进制等，更适合 AI 场景（可能要传 JSON + 音频 + 图片）
+- 跨平台兼容问题：SSE 支持的客户端主要是浏览器端和少量语言库；而 Streamable HTTP 支持多种客户端。
+- 性能问题：SSE 是基于 HTTP/1.1 长连接，Streamable HTTP 可以基于 HTTP/2/3 ，支持多路复用和双向流。且 HTTP/2/3 的流控制和优先级机制使得高吞吐和低延迟成为可能；SSE 消息只能文本格式，Streamable HTTP 支持其他采用更紧凑的编码方式（比如二进制分包、压缩等）。  
 
 
 ## 手搓简易MCP客户端+服务端+langchain链式调用   （代办）   
@@ -861,14 +873,14 @@ MCP 支持两种传输机制：
 
 ### Cline 与 大模型交互流程   
 
-![deepseek_mermaid_20260118_e7c312](/Users/yue/Downloads/deepseek_mermaid_20260118_e7c312.png)
+![deepseek_mermaid_20260118_e7c312](./images/deepseek_mermaid_20260118_e7c312.png)
 
 #### cline和mcp server的交互流程  
 
 * 输入：cline--->mcp server  
 * 输出：mcp server --->cline
 
-![deepseek_mermaid_20260118_a6d71e](/Users/yue/Downloads/deepseek_mermaid_20260118_a6d71e.png)
+![deepseek_mermaid_20260118_a6d71e](./images/deepseek_mermaid_20260118_a6d71e.png)
 
 1、mcp server注册日志  
 
@@ -893,9 +905,9 @@ STDERR:                              ListResourceTemplatesRequest
 
 2、mcp server调用日志  
 
-![](/Users/yue/Downloads/截屏2026-01-18 17.33.09.png)
+![](./images/截屏2026-01-18 17.33.09.png)
 
-![](/Users/yue/Downloads/截屏2026-01-18 17.33.52.png)
+![](./images/截屏2026-01-18 17.33.52.png)
 
 ```tex
 输入: {"method":"tools/call","params":{"name":"multiply","arguments":{"a":6,"b":5}},"jsonrpc":"2.0","id":4}
