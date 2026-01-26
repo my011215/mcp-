@@ -19,7 +19,7 @@ from mcp.client.session import ClientSession
 class SmartClient:
     """智能MCP客户端 - 使用Qwen大模型自动"""
 
-    DEFAULT_API_KEY = "sk-ae1c06a8e9e241e398fe1e3ce8e7043e"
+    DEFAULT_API_KEY = "sk-"
     DEFAULT_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
     DEFAULT_MODEL_NAME = "qwen-plus-2025-07-28"
 
@@ -437,7 +437,7 @@ async def main():
     # 创建客户端
     client = SmartClient(
         model_name="qwen-plus-2025-07-28",
-        api_key="sk-ae1c06a8e9e241e398fe1e3ce8e7043e",
+        api_key="sk-",
         base_url="https://dashscope.aliyuncs.com/compatible-mode/v1"
     )
 
