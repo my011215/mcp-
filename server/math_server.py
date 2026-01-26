@@ -184,57 +184,6 @@ def square_root(number: float) -> Dict[str, Any]:
         }
 
 
-@mcp.tool()
-def batch_calculate(operations: str) -> Dict[str, Any]:
-    """
-    批量执行多个计算
-
-    参数:
-        operations: 计算表达式，用分号分隔
-                  示例: "2+3; 5*4; 10/2"
-
-    返回:
-        包含所有计算结果的字典
-    """
-    try:
-        if not operations:
-            return {
-                "error": "请输入计算表达式",
-                "operation": "batch_calculate"
-            }
-
-        # 分割表达式
-        exp_list = [exp.strip() for exp in operations.split(';') if exp.strip()]
-        results = []
-
-        for exp in exp_list:
-            try:
-                # 安全地计算表达式
-                result = eval(exp, {"__builtins__": {}}, {})
-                results.append({
-                    "expression": exp,
-                    "result": result
-                })
-            except Exception as e:
-                results.append({
-                    "expression": exp,
-                    "error": f"计算失败: {str(e)}"
-                })
-
-        return {
-            "operation": "batch_calculate",
-            "expressions": exp_list,
-            "results": results,
-            "total": len(results),
-            "successful": sum(1 for r in results if "error" not in r)
-        }
-    except Exception as e:
-        return {
-            "error": f"批量计算失败: {str(e)}",
-            "operation": "batch_calculate"
-        }
-
-
 if __name__ == "__main__":
     print("数学计算服务器启动中...")
     mcp.run(transport='stdio')

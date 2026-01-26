@@ -844,6 +844,10 @@ HTTP + SSE 传输方案的升级版，目前正在逐步取代原有的 HTTP + S
 ## 手搓简易MCP客户端+服务端进行数学计算  （代办）   
 
 ### 本地      
+```
+source .venv/bin/activate
+uv run main.py ../server/math_server.py
+```
 
 ### 远程    
 

@@ -19,7 +19,7 @@ from mcp.client.session import ClientSession
 class SmartClient:
     """智能MCP客户端 - 使用Qwen大模型自动"""
 
-    DEFAULT_API_KEY = "sk-"
+    DEFAULT_API_KEY = "sk-ae1c06a8e9e241e398fe1e3ce8e7043e"
     DEFAULT_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
     DEFAULT_MODEL_NAME = "qwen-plus-2025-07-28"
 
@@ -191,20 +191,22 @@ class SmartClient:
         # 准备工具描述
         available_tools = []
         for tool_info in self.available_tools:
+            # print(tool_info)
             tool_name = tool_info["function"]["name"]
             tool_description = tool_info["function"]["description"]
+            parameters = tool_info["function"]["parameters"]
 
-            # 根据工具类型设置参数schema
-            if tool_name == "read_file_content":
-                parameters = {
-                    "type": "object",
-                    "properties": {
-                        "file_path": {"type": "string", "description": "文件路径"}
-                    },
-                    "required": ["file_path"]
-                }
-            else:
-                parameters = {"type": "object", "properties": {}}
+            # # 根据工具类型设置参数schema
+            # if tool_name == "read_file_content":
+            #     parameters = {
+            #         "type": "object",
+            #         "properties": {
+            #             "file_path": {"type": "string", "description": "文件路径"}
+            #         },
+            #         "required": ["file_path"]
+            #     }
+            # else:
+            #     parameters = {"type": "object", "properties": {}}
 
             available_tools.append({
                 "type": "function",
@@ -217,6 +219,8 @@ class SmartClient:
 
         try:
             # 调用API
+            print("发送给模型messages：", messages)
+            print("发送给模型工具信息：", available_tools)
             response = self.ai_client.chat.completions.create(
                 model=self.model_name,
                 messages=messages,
@@ -234,6 +238,7 @@ class SmartClient:
 
             # 处理工具调用
             if hasattr(message, 'tool_calls') and message.tool_calls:
+                print("模型返回原始工具调用信息：", message.tool_calls)
                 # 执行工具调用
                 tool_results = []
                 for tool_call in message.tool_calls:
@@ -248,12 +253,13 @@ class SmartClient:
                             arguments = json.loads(arguments_str)
                         else:
                             # 根据问题推断参数
-                            arguments = self._infer_arguments_from_query(cleaned_query, tool_name)
+                            arguments = ""
 
                         print(f"🔧 执行 {tool_name}，参数: {arguments}")
 
                         # 调用工具
                         tool_result = await self._call_tool(tool_name, arguments)
+                        print("调用工具原始结果：", tool_result)
 
                         # 清理工具结果
                         cleaned_result = {}
@@ -316,6 +322,7 @@ class SmartClient:
                         })
 
                     try:
+                        print("再次发送给模型信息：", summary_messages)
                         summary_response = self.ai_client.chat.completions.create(
                             model=self.model_name,
                             messages=summary_messages,
@@ -355,6 +362,7 @@ class SmartClient:
 
             else:
                 # 没有工具调用，直接返回AI回复
+                print("没有工具调用，直接返回AI回复")
                 if message.content:
                     cleaned_response = self._clean_unicode_text(message.content)
                     self.conversation_history.append({
@@ -373,46 +381,12 @@ class SmartClient:
             print(f"AI处理失败: {e}")
             return f"处理失败: {str(e)}"
 
-    def _infer_arguments_from_query(self, query: str, tool_name: str) -> Dict:
-        """从查询中推断参数"""
-        
-        if tool_name == "read_file_content":
-            # 从查询中提取文件路径
-            # 匹配常见的文件路径模式
-            file_patterns = [
-                r'[\w\-./]+\.[a-zA-Z]+',  # 文件名.扩展名
-                r'/[/\w\-.]+',  # 绝对路径
-                r'[\w\-./]+/[\w\-.]+'  # 相对路径
-            ]
-            
-            for pattern in file_patterns:
-                matches = re.findall(pattern, query)
-                if matches:
-                    # 优先选择看起来像文件路径的匹配项
-                    for match in matches:
-                        if '.' in match and len(match) > 3:  # 包含扩展名且长度合理
-                            return {"file_path": match}
-                    # 如果没有找到明显文件路径，使用第一个匹配项
-                    return {"file_path": matches[0]}
-            
-            # 如果没有找到文件路径，使用默认值
-            return {"file_path": "./test.txt"}
-        else:
-            # 默认参数
-            defaults = {
-                "read_file_content": {"file_path": "./test.txt"}
-            }
-            return defaults.get(tool_name, {})
-
     async def chat_mode(self):
         """进入智能聊天模式"""
         print("\n" + "=" * 50)
-        print("🤖 文件读取助手已启动！")
+        print("🤖 数学计算客户端已启动！")
         print("💡 你可以用自然语言提问，例如：")
-        print("   • '读取文件 /path/to/file.txt'")
-        print("   • '查看文件内容 ./test.txt'")
-        print("   • '帮我读取文件内容'")
-        print("   • '显示文件内容'")
+        print("   • '计算123+678等于多少'")
         print("   • '退出' 或 'quit' 结束对话")
         print("=" * 50 + "\n")
 
@@ -454,8 +428,8 @@ class SmartClient:
 async def main():
     """主函数"""
     if len(sys.argv) < 2:
-        print("用法: python math_ai_client.py <server_script_path>")
-        print("示例: python math_ai_client.py math_server.py")
+        print("用法: python main.py <server_script_path>")
+        print("示例: python main.py math_server.py")
         return
 
     server_script_path = sys.argv[1]
@@ -463,7 +437,7 @@ async def main():
     # 创建客户端
     client = SmartClient(
         model_name="qwen-plus-2025-07-28",
-        api_key="sk-",
+        api_key="sk-ae1c06a8e9e241e398fe1e3ce8e7043e",
         base_url="https://dashscope.aliyuncs.com/compatible-mode/v1"
     )
 
