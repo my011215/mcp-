@@ -1,7 +1,20 @@
-# Function Calling  
+# 初始问答结构  
 
-背景：大模型只具有聊天相关的功能，特别的，计算、解码、需要根据一些特定api接口获取对应数据以及帮助用户跑代码、发邮件等，这些是大模型的弱项，也就是没有调用工具的能力。
-主要概括为以下两点：
+![这是图片](./images/0880c08b0110ddd39939.png)
+
+```
+System Prompt: 
+  定义"科技编辑"角色
+  ↓
+User Prompt 1: "写Vision Pro新闻"
+  ↓
+模型响应: 以编辑身份写专业新闻稿
+```
+
+# 工具调用  
+
+背景：大模型只具有聊天相关的功能，特别的，计算、解码、需要根据一些特定api接口获取对应数据以及帮助用户跑代码、发邮件等，这些是大模型的弱项，也就是没有调用工具的能力。  
+主要概括为以下两点：  
 1、缺失获取信息的能力。  
 2、缺失必要动作的能力。  
 
@@ -12,21 +25,83 @@
 ![这是图片](./images/deepseek_mermaid_20260112_d79ee2.png)
 
 一些问题：  
-1、是否调用工具、调用什么工具由后端负责判断，逻辑复杂且容易误判。
-2、工具的参数部分值提取对于代码来说不是很智能。
+1、是否调用工具、调用什么工具由后端负责判断，逻辑复杂且容易误判。  
+2、工具的参数部分值提取对于代码来说不是很智能。  
 
 解决办法：  
 **与其让AI什么都做，不如让它学会“使用工具”** 
 
-大模型根据具体场景，决定需要调用什么工具，以及生成对应的参数给后端。
+大模型根据具体场景，决定需要调用什么工具，以及生成对应的参数给后端。  
+
+### 基于提示词的工具调用   
+
+![这是图片](./images/deepseek_mermaid_20260112_b61bd5.png)
+
+* 提示词例子  
+```text
+# 系统角色定义
+你是数学计算助手，可以调用计算工具帮助用户解决数学问题。
+
+# 可用工具定义
+## 工具1：calculate - 四则运算计算器
+描述：执行精确的加减乘除运算
+参数规范：
+- num1: number (必需) - 第一个操作数
+- num2: number (必需) - 第二个操作数  
+- operator: string (必需) - 运算符，枚举值: ["+", "-", "*", "/", "加", "减", "乘", "除"]
+
+# 工具调用规范
+1. 当用户的问题涉及数字计算时，必须调用calculate工具
+2. 识别用户问题中的数字和运算符，转换为标准格式
+3. 对于中文运算符，需要转换为符号：
+   "加" → "+", "减" → "-", "乘" → "*", "除" → "/"
+4. 输出必须为有效的JSON格式
+
+# 示例对话
+用户: "5加3等于多少？"
+助手: {"function": "calculate", "parameters": {"num1": 5, "num2": 3, "operator": "+"}}
+
+用户: "计算10除以2"
+助手: {"function": "calculate", "parameters": {"num1": 10, "num2": 2, "operator": "/"}}
+
+用户: "123乘456"
+助手: {"function": "calculate", "parameters": {"num1": 123, "num2": 456, "operator": "*"}}
+
+# 当前用户问题
+用户: {user_question}
+
+请严格按照上述规范响应：
+```
+
+* 一些问题   
+1、**输出格式不稳定**   
+调用指令中存在多余自然语言、不同模型返回信息不稳定，不遵循指令严格返回。  
+2、**模型幻觉**  
+模型可能编造并不存在的函数名或参数。  
+3、**开发有一定成本**    
+函数描述、调用指令格式、提示词逻辑完全由开发者设计。  
+4、**数据量冗杂，消耗token**  
+为确保调用逻辑正确，往往需要在 system prompt 中加入大量说明与规则。   
+
 
 ### Function Calling+LLM
+
+#### 概念  
 
 参考文章：https://ai-doc.it-docs.cn/docs_en/guides_function-calling  
 
 Function Calling是指大语言模型（LLM）能够识别用户意图，并结构化地输出调用外部工具/函数所需的参数的能力。这不是让AI直接执行代码，而是让AI“知道”何时、如何调用外部功能。
 
-* 具体流程：  
+**特别的** 
+
+Function Calling 是什么?  
+
+- 广义的 Function Calling 是指让大模型能够调用外部工具的一种技术实现：先向大模型提供可用函数的列表及说明，由大模型在对话过程中智能判断是否需要调用函数，并自动生成调用所需的参数，最终用文字返回符合约定格式的函数调用请求。  
+- 狭义的 Function Calling 特指大模型提供商在模型内部与 API 层面做了支持的一种能力，它最早由 OpenAI 引入  
+
+
+
+具体流程：  
 向大模型提供可用函数的列表及说明，由大模型在对话过程中智能判断是否需要调用函数，并自动生成调用所需的参数，最终用文字返回符合约定格式的函数调用请求。
 
 1、模型能力：模型提供商需对大模型进行特别优化，使其具备根据上下文正确选择合适函数、生成有效参数的能力。
@@ -160,63 +235,9 @@ if response.candidates[0].content.parts[0].function_call:
     # fc.args (已经是字典)
 ```
 
-#### 基于提示词的 Function Calling  
-
-![这是图片](./images/deepseek_mermaid_20260112_b61bd5.png)
-
-* 提示词例子  
-```text
-# 系统角色定义
-你是数学计算助手，可以调用计算工具帮助用户解决数学问题。
-
-# 可用工具定义
-## 工具1：calculate - 四则运算计算器
-描述：执行精确的加减乘除运算
-参数规范：
-- num1: number (必需) - 第一个操作数
-- num2: number (必需) - 第二个操作数  
-- operator: string (必需) - 运算符，枚举值: ["+", "-", "*", "/", "加", "减", "乘", "除"]
-
-# 工具调用规范
-1. 当用户的问题涉及数字计算时，必须调用calculate工具
-2. 识别用户问题中的数字和运算符，转换为标准格式
-3. 对于中文运算符，需要转换为符号：
-   "加" → "+", "减" → "-", "乘" → "*", "除" → "/"
-4. 输出必须为有效的JSON格式
-
-# 示例对话
-用户: "5加3等于多少？"
-助手: {"function": "calculate", "parameters": {"num1": 5, "num2": 3, "operator": "+"}}
-
-用户: "计算10除以2"
-助手: {"function": "calculate", "parameters": {"num1": 10, "num2": 2, "operator": "/"}}
-
-用户: "123乘456"
-助手: {"function": "calculate", "parameters": {"num1": 123, "num2": 456, "operator": "*"}}
-
-# 当前用户问题
-用户: {user_question}
-
-请严格按照上述规范响应：
-```
-
-* 一些问题  
-这种方案让原本"缺失必要动作能力"的大模型，通过精心设计的提示词获得了有限但可控的工具调用能力，而实际的执行安全性和准确性仍由后端保障。  
-
-1、**输出格式不稳定**   
-调用指令中存在多余自然语言、不同模型返回信息不稳定，不遵循指令严格返回。  
-2、**模型幻觉**  
-模型可能编造并不存在的函数名或参数。  
-3、**开发有一定成本**    
-函数描述、调用指令格式、提示词逻辑完全由开发者设计。  
-4、**数据量冗杂，消耗token**  
-为确保调用逻辑正确，往往需要在 system prompt 中加入大量说明与规则。  
-
-#### 基于 API 的 Function Calling  
+#### 具体使用例子    
 
 参考文档：https://ai-doc.it-docs.cn/docs_en/guides_function-calling  
-
-![这是图片](./images/deepseek_mermaid_20260113_20542f.png)
 
 1、用户提问  
 请你帮忙计算123*456等于多少？  
@@ -634,7 +655,12 @@ messages = [
 
 ## 从问题到解决方案  
 
+* 举个栗子  
+
+![这是图片](./images/0880c08b0110dd95fb3d.png)
+
 1、工具接入的冗余开发问题  
+
 ```python
 # 当前状态：每个AI应用都需要重复实现相同的工具
 
@@ -652,6 +678,10 @@ class CalculatorB:
 class CalculatorC:
     def add(self, a, b): return a + b  # 又来一遍！
 ```
+
+假设有100个AI应用，每个应用需要10个工具：  
+总代码复制量：100 × 10 = 1000次复制   
+维护成本：当工具更新时，需要通知100个应用更新  
 
 * 重复劳动：同样的工具逻辑要在N个应用中写N遍
 * 一致性维护：当工具逻辑更新（如修复bug、添加功能），需要在所有应用中同步修改
@@ -681,13 +711,6 @@ module.exports.getWeather = function(city) {
 ## 思考？  
 
 1、有没有办法"不复制代码也能用"？  
-假设有100个AI应用，每个应用需要10个工具：  
-总代码复制量：100 × 10 = 1000次复制   
-维护成本：当工具更新时，需要通知100个应用更新  
-
-* 想复用：避免重复造轮子  
-* 不想耦合：保持系统解耦  
-* 语言异构：现实是多种语言并存  
 
 
 ```python
@@ -763,6 +786,8 @@ MCP架构中的关键参与者是：
 * MCP客户端：维护与MCP服务器的连接，并从MCP服务器获取上下文供MCP主机使用的组件
 * MCP服务器：为MCP客户端提供上下文的程序
 
+![这是图片](./images/0880c08b0110dd99f03f.png)
+
 > **For example**: Visual Studio Code acts as an MCP host. When Visual Studio Code establishes a connection to an MCP server, such as the [Sentry MCP server](https://docs.sentry.io/product/sentry-mcp/), the Visual Studio Code runtime instantiates an MCP client object that maintains the connection to the Sentry MCP server. When Visual Studio Code subsequently connects to another MCP server, such as the [local filesystem server](https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem), the Visual Studio Code runtime instantiates an additional MCP client object to maintain this connection.
 
 例如：Visual Studio Code 充当 MCP 主机。当 Visual Studio Code 与 MCP 服务器（例如 Sentry MCP 服务器）建立连接时，Visual Studio Code 运行时会实例化一个 MCP 客户端对象来维护与 Sentry MCP 服务器的连接。当 Visual Studio Code 随后连接到另一个 MCP 服务器，例如本地文件系统服务器时，Visual Studio Code 运行时会实例化一个额外的 MCP 客户端对象来维护该连接。    
@@ -796,14 +821,14 @@ MCP 支持两种传输机制：
 
 **Stdio 传输**：使用标准输入/输出流在同一台机器上的本地进程之间进行直接进程通信，提供最佳性能，无网络开销。  
 
-##### HTTP + SSE 传输  （代办）  
+##### HTTP + SSE 传输   
 
 **SSE**（Server-Sent Events服务器发送事件），是一种服务器单向推送数据给客户端的技术，基于 HTTP 协议。  
 
 - 支持服务端主动、流式地推送消息  
 - 服务端推送的必要性：MCP Server 中的工具发生了更新，需要主动向 MCP Client 推送通知
 
-##### Streamable HTTP 传输  （代办） 
+##### Streamable HTTP 传输  
 HTTP + SSE 传输方案的升级版，目前正在逐步取代原有的 HTTP + SSE 传输方案  
 链接：https://github.com/modelcontextprotocol/modelcontextprotocol/pull/206  
 
@@ -816,13 +841,14 @@ HTTP + SSE 传输方案的升级版，目前正在逐步取代原有的 HTTP + S
 - 性能问题：SSE 是基于 HTTP/1.1 长连接，Streamable HTTP 可以基于 HTTP/2/3 ，支持多路复用和双向流。且 HTTP/2/3 的流控制和优先级机制使得高吞吐和低延迟成为可能；SSE 消息只能文本格式，Streamable HTTP 支持其他采用更紧凑的编码方式（比如二进制分包、压缩等）。  
 
 
-## 手搓简易MCP客户端+服务端+langchain链式调用   （代办）   
+## 手搓简易MCP客户端+服务端进行数学计算  （代办）   
+
+### 本地      
+
+### 远程    
 
 
-
-## MCP 底层协议的过程（以cline的交互为例）    
-
-### mcp server网站    
+## mcp server网站    
 
 1、https://mcp.so/zh  
 
@@ -869,7 +895,10 @@ HTTP + SSE 传输方案的升级版，目前正在逐步取代原有的 HTTP + S
 
 2、npx   
 
-不举例了，安装Node.js后和uvx启动方式差不多    
+不举例了，安装Node.js后和uvx启动方式差不多 
+
+
+## MCP 交互的过程（以cline的交互为例）    
 
 ### Cline 与 大模型交互流程   
 
