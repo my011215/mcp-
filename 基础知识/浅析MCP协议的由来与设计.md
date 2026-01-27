@@ -949,9 +949,9 @@ STDERR:                              ListResourceTemplatesRequest
 
 2、mcp server调用日志  
 
-![](./images/截屏2026-01-18 17.33.09.png)
+![](./images/2026-01-18-1.png)
 
-![](./images/截屏2026-01-18 17.33.52.png)
+![](./images/2026-01-18-2.png)
 
 ```tex
 输入: {"method":"tools/call","params":{"name":"multiply","arguments":{"a":6,"b":5}},"jsonrpc":"2.0","id":4}
