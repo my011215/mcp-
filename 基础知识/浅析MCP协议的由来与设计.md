@@ -1,10 +1,14 @@
 # 初始问答结构  
 
-1、最原本一问一答  
-user：请你介绍一下草莓
-LLM：草莓是一种广受喜爱、营养丰富的水果，以下是关于它的详细介绍：
+1、最基础结构一问一答，针对通用大模型  
 
-2、一款专门研判告警的大模型  
+USER(user prompt)：请你介绍一下命令执行漏洞  
+LLM：好的，我们来全面、系统地介绍一下命令执行漏洞。
+命令执行漏洞是Web安全领域中危害性极高的一种漏洞，它允许攻击者在目标服务器上直接执行操作系统命令，从而完全控制服务器。  
+......  
+......  
+
+2、赋予大模型角色专门用于解决一些特定领域问题（一款专门研判告警的大模型）    
 
 ![这是图片](./images/0880c08b0110ddd39939.png)
 
@@ -44,7 +48,34 @@ User Prompt 1: "告警信息"
 
 大模型根据具体场景，决定需要调用什么工具，以及生成对应的参数给后端。  
 
-### 基于提示词的工具调用   
+### Function Calling+LLM
+
+#### 概念  
+
+参考文章：https://ai-doc.it-docs.cn/docs_en/guides_function-calling  
+
+Function Calling是指大语言模型（LLM）能够识别用户意图，并结构化地输出调用外部工具/函数所需的参数的能力。这不是让AI直接执行代码，而是让AI“知道”何时、如何调用外部功能。
+
+**特别的** 
+
+Function Calling 是什么?  
+
+- 广义的 Function Calling 是指让大模型能够调用外部工具的一种技术实现：先向大模型提供可用函数的列表及说明，由大模型在对话过程中智能判断是否需要调用函数，并自动生成调用所需的参数，最终用文字返回符合约定格式的函数调用请求。  
+- 狭义的 Function Calling 特指大模型提供商在模型内部与 API 层面做了支持的一种能力，它最早由 OpenAI 引入  
+
+
+
+具体流程：  
+向大模型提供可用函数的列表及说明，由大模型在对话过程中智能判断是否需要调用函数，并自动生成调用所需的参数，最终用文字返回符合约定格式的函数调用请求。
+
+1、模型能力：模型提供商需对大模型进行特别优化，使其具备根据上下文正确选择合适函数、生成有效参数的能力。
+- 监督微调：使用（用户查询, 函数调用）配对数据
+- 格式约束：强制模型输出特定JSON结构
+- 强化学习：优化函数选择的准确性
+
+2、API支持：模型提供商需额外开放对 Function Calling 的支持（比如 GPT API  中提供了一个 functions 参数）。
+
+#### 基于提示词的Function Calling     
 
 ![这是图片](./images/deepseek_mermaid_20260112_b61bd5.png)
 
@@ -95,32 +126,7 @@ User Prompt 1: "告警信息"
 为确保调用逻辑正确，往往需要在 system prompt 中加入大量说明与规则。   
 
 
-### Function Calling+LLM
-
-#### 概念  
-
-参考文章：https://ai-doc.it-docs.cn/docs_en/guides_function-calling  
-
-Function Calling是指大语言模型（LLM）能够识别用户意图，并结构化地输出调用外部工具/函数所需的参数的能力。这不是让AI直接执行代码，而是让AI“知道”何时、如何调用外部功能。
-
-**特别的** 
-
-Function Calling 是什么?  
-
-- 广义的 Function Calling 是指让大模型能够调用外部工具的一种技术实现：先向大模型提供可用函数的列表及说明，由大模型在对话过程中智能判断是否需要调用函数，并自动生成调用所需的参数，最终用文字返回符合约定格式的函数调用请求。  
-- 狭义的 Function Calling 特指大模型提供商在模型内部与 API 层面做了支持的一种能力，它最早由 OpenAI 引入  
-
-
-
-具体流程：  
-向大模型提供可用函数的列表及说明，由大模型在对话过程中智能判断是否需要调用函数，并自动生成调用所需的参数，最终用文字返回符合约定格式的函数调用请求。
-
-1、模型能力：模型提供商需对大模型进行特别优化，使其具备根据上下文正确选择合适函数、生成有效参数的能力。
-- 监督微调：使用（用户查询, 函数调用）配对数据
-- 格式约束：强制模型输出特定JSON结构
-- 强化学习：优化函数选择的准确性
-
-2、API支持：模型提供商需额外开放对 Function Calling 的支持（比如 GPT API  中提供了一个 functions 参数）。
+#### 基于api的function calling  
 - OpenAI格式    
 ```python
 # OpenAI / Azure OpenAI 格式
@@ -246,7 +252,7 @@ if response.candidates[0].content.parts[0].function_call:
     # fc.args (已经是字典)
 ```
 
-#### 具体使用例子    
+##### 具体使用例子    
 
 参考文档：https://ai-doc.it-docs.cn/docs_en/guides_function-calling  
 
@@ -660,17 +666,12 @@ messages = [
 # 随着工具增多，token消耗显著增加
 ```
 
-# MCP协议  
-
-参考文档：https://modelcontextprotocol.io/docs/getting-started/intro  
-
-## 从问题到解决方案  
+5、相同工具接入重复开发，复用困难  
 
 * 举个栗子  
 
 ![这是图片](./images/0880c08b0110dd95fb3d.png)
 
-1、工具接入的冗余开发问题  
 
 ```python
 # 当前状态：每个AI应用都需要重复实现相同的工具
@@ -694,79 +695,19 @@ class CalculatorC:
 总代码复制量：100 × 10 = 1000次复制   
 维护成本：当工具更新时，需要通知100个应用更新  
 
-* 重复劳动：同样的工具逻辑要在N个应用中写N遍
-* 一致性维护：当工具逻辑更新（如修复bug、添加功能），需要在所有应用中同步修改
-* 知识冗余：每个开发者都需要理解工具的内部实现细节
-* 版本碎片化：不同应用中的同一工具可能有不同版本，行为不一致
+6、没有开发基础的用户如何实现工具调用？  
 
-2、工具复用困难  
-```text
-# 假设有一个用Node.js写的天气查询工具
-// weather-tool.js (Node.js)
-module.exports.getWeather = function(city) {
-    // 调用天气API的复杂逻辑
-    return fetch(`https://api.weather.com/${city}`);
-}
+# MCP协议
 
-# Python开发者想要复用这个工具
-# ❌ 直接Copy代码不可行：语言不兼容
-# ❌ 重写工具：需要理解原逻辑，可能引入错误
-# ❌ 环境依赖：原工具可能依赖特定的Node.js包
-```
+针对于上述问题5和6，也就是工具内部问题，产生了MCP方案  
 
-* 语言壁垒：Python应用无法直接调用Node.js、Java、Go等语言写的工具  
-* 环境依赖：工具可能需要特定运行时、数据库连接、API密钥等  
-* 商业闭源：企业级工具通常只提供二进制或服务，不给源码  
-* 技术栈锁定：团队被特定语言绑定，无法使用其他语言的优势工具  
-
-## 思考？  
-
-1、有没有办法"不复制代码也能用"？  
-
-
-```python
-# ❌ 传统方式：代码拷贝
-def traditional_approach():
-    # 需要天气工具？复制weather.py
-    copy_file("weather.py", "my_app/tools/")
-    
-    # 需要计算工具？复制calculator.py  
-    copy_file("calculator.py", "my_app/tools/")
-    
-    # 问题：每加一个工具就要复制一次
-    # 问题：如果是Go语言写的工具？复制了也用不了
-    return "不可持续"
-
-# ✅ 理想方式：配置即接入
-def ideal_approach():
-    # 只需声明需要什么工具
-    config = {
-        "tools": ["weather", "calculator", "email"]
-    }
-    
-    # 系统自动：
-    # 1. 发现工具在哪里
-    # 2. 获取工具描述
-    # 3. 建立调用连接
-    # 4. 处理通信协议
-    return "一站式接入"
-```
-
-2、解决办法  
-
-* 本地服务接入：stdio  
-  - 如何在任意 AI 应用中通过一条标准化配置：
-    - 拉取任意工具的包到本地，并在本地起一个进程，将工具作为一个服务运行起来（只要工具开发者有提供对应的包）
-    - 自动获取工具的描述信息、自动完成调用过程（通过**本地进程间通信**）
-* 远程服务调用：API  
-  - 如何在任意  AI 应用中通过一条标准化配置：
-    - 访问任意工具的远程服务（只要工具开发者有对外提供服务）
-    - 自动获取工具的描述信息、自动完成调用过程（通过**远程服务调用**）
+参考文档：https://modelcontextprotocol.io/docs/getting-started/intro   
 
 ## 解决方案  
 
 1、解耦：工具独立部署   
 2、标准化：统一交互协议  
+3、实现工具共享  
 
 ## MCP协议是什么  
 
@@ -852,7 +793,7 @@ HTTP + SSE 传输方案的升级版，目前正在逐步取代原有的 HTTP + S
 - 性能问题：SSE 是基于 HTTP/1.1 长连接，Streamable HTTP 可以基于 HTTP/2/3 ，支持多路复用和双向流。且 HTTP/2/3 的流控制和优先级机制使得高吞吐和低延迟成为可能；SSE 消息只能文本格式，Streamable HTTP 支持其他采用更紧凑的编码方式（比如二进制分包、压缩等）。  
 
 
-## 手搓简易MCP客户端+服务端进行数学计算  （代办）   
+## 简易MCP客户端+服务端进行数学计算     
 
 ### 本地      
 ```
@@ -860,10 +801,10 @@ source .venv/bin/activate
 uv run main.py ../server/math_server.py
 ```
 
-### 远程    
 
+## MCP 交互的过程（以cline的交互为例）    
 
-## mcp server网站    
+### mcp server网站    
 
 1、https://mcp.so/zh  
 
@@ -912,9 +853,6 @@ uv run main.py ../server/math_server.py
 
 不举例了，安装Node.js后和uvx启动方式差不多 
 
-
-## MCP 交互的过程（以cline的交互为例）    
-
 ### Cline 与 大模型交互流程   
 
 ![deepseek_mermaid_20260118_e7c312](./images/deepseek_mermaid_20260118_e7c312.png)
@@ -947,6 +885,21 @@ STDERR:                              ListResourceTemplatesRequest
 
 ```
 
+（1）初始化阶段  
+客户端：Cline (v3.51.0) 向服务器发送初始化请求  
+
+服务器：math 服务器 (v1.25.0) 响应，确认支持的协议版本和功能  
+
+（2）服务端就绪通知  
+客户端通知服务器初始化已完成，可以开始正常工作  
+
+（3）工具列表查询  
+客户端请求可用的工具列表  
+
+服务器返回 7个数学计算工具  
+
+（4）资源列表查询  
+
 2、mcp server调用日志  
 
 ![](./images/2026-01-18-1.png)
@@ -963,6 +916,45 @@ STDERR: [01/18/26 17:31:41] INFO     Processing request of type            serve
 STDERR:                              CallToolRequest                                    
 输出: {"jsonrpc":"2.0","id":5,"result":{"content":[{"type":"text","text":"{\n  \"operation\": \"addition\",\n  \"expression\": \"30.0 + 7.0\",\n  \"result\": 37.0,\n  \"formatted\": \"30.0 + 7.0 = 37.0\"\n}"}],"structuredContent":{"result":{"operation":"addition","expression":"30.0 + 7.0","result":37.0,"formatted":"30.0 + 7.0 = 37.0"}},"isError":false}}
 
+```
+
+3、MCP 的统一设计  
+
+（1）请求标准化  
+```json
+// 无论什么模型，调用格式都一样
+{
+  "method": "tools/call",
+  "params": {"name": "multiply", "arguments": {"a":6,"b":5}},
+  "jsonrpc": "2.0",
+  "id": 4
+}
+```  
+
+（2）响应结构相对统一  
+MCP 定义了响应框架，但内容格式由工具决定：  
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 4,
+  "result": {                                     // 必选：result 或 error
+    "content": [                                   // 可选：文本内容数组
+      {
+        "type": "text",                            // 类型：text/image/tool_result
+        "text": "..."                              // 内容由工具决定
+      }
+    ],
+    "structuredContent": {                         // 可选：结构化内容
+      "result": {                                  // 结构由工具定义
+        "operation": "multiplication",
+        "result": 30.0,
+        "...": "..."
+      }
+    },
+    "isError": false                               // 可选：错误标识
+  }
+}
 ```
 
 #### cline与大模型的交互流程  （代办）  
