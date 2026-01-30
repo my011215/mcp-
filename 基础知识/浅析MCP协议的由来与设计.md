@@ -929,7 +929,7 @@ STDERR:                              CallToolRequest
   "jsonrpc": "2.0",
   "id": 4
 }
-```  
+```
 
 （2）响应结构相对统一  
 MCP 定义了响应框架，但内容格式由工具决定：  
@@ -957,5 +957,6 @@ MCP 定义了响应框架，但内容格式由工具决定：
 }
 ```
 
-#### cline与大模型的交互流程  （代办）  
+#### cline与大模型的交互流程    
 
+thought-->action-->observation-->response
